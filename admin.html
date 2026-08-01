@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADMIN PANEL - ELITESTYLE</title>
+    <link rel="icon" href="ELITE.icon" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Firebase Auth & Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { min-height: 100%; font-family: 'Chakra Petch', sans-serif; color: #ffffff; background-color: #050505; overflow-x: hidden; }
+        .background { position: fixed; top: -20px; left: -20px; width: calc(100% + 40px); height: calc(100% + 40px); background-color: #111; background-image: url('bg.jpg'); background-position: center; background-size: cover; background-repeat: no-repeat; z-index: 1; animation: bgZoom 20s infinite alternate ease-in-out; }
+        .background-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(5, 5, 8, 0.85), rgba(5, 5, 8, 0.95)); z-index: 2; }
+        @keyframes bgZoom { 0% { transform: scale(1); } 100% { transform: scale(1.05); } }
+        .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px 80px 20px; position: relative; z-index: 10; display: none; }
+        .top-nav { margin-bottom: 20px; animation: fadeInDown 1s ease-out both; display: flex; justify-content: space-between; align-items: center; }
+        .btn-back { display: inline-block; text-decoration: none; color: #ffffff; font-family: 'Orbitron', sans-serif; font-size: 0.9rem; background: rgba(255, 255, 255, 0.05); padding: 8px 15px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.3s ease; }
+        .btn-back:hover { background: rgba(255, 255, 255, 0.1); border-color: #fff; }
+        .header-center { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; animation: fadeInDown 1s ease-out 0.2s both; }
+        .main-page-title { font-family: 'Orbitron', sans-serif; font-size: 3.5rem; font-weight: 900; letter-spacing: 12px; color: #ff4757; text-transform: uppercase; margin-bottom: 10px; text-shadow: 0 0 20px rgba(255, 71, 87, 0.4); text-align: center; }
+        
+        .admin-panel { background: rgba(20, 20, 25, 0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 71, 87, 0.4); border-radius: 12px; padding: 25px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 20px rgba(255, 71, 87, 0.1); animation: fadeInDown 1s ease-out 0.4s both; }
+        .panel-design { border-color: #1E90FF; box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 20px rgba(30, 144, 255, 0.1); }
+        .admin-title { font-family: 'Orbitron', sans-serif; font-size: 1.2rem; margin-bottom: 15px; color: #ff4757; letter-spacing: 2px; }
+        .admin-form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .admin-input { width: 100%; padding: 12px 15px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(0, 0, 0, 0.5); color: #ffffff; font-family: 'Chakra Petch', sans-serif; font-size: 0.95rem; outline: none; }
+        .admin-input:focus { border-color: #ff4757; }
+        .btn-action { font-family: 'Orbitron', sans-serif; padding: 12px 25px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; transition: all 0.3s; }
+        .btn-add { background: #1E90FF; color: #fff; } .btn-add:hover { background: #1877F2; box-shadow: 0 0 15px rgba(30,144,255,0.4); }
+        .btn-cancel { background: #555; color: #fff; } .btn-cancel:hover { background: #777; }
+        .btn-logout { background: transparent; border: 1px solid #ff4757; color: #ff4757; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-family: 'Orbitron', sans-serif; transition: 0.3s; }
+        .btn-logout:hover { background: #ff4757; color: #fff; }
+        
+        .category-section { margin-bottom: 40px; }
+        .category-header { display: flex; align-items: baseline; margin-bottom: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 8px; }
+        .category-title { font-family: 'Orbitron', sans-serif; font-size: 1.4rem; font-weight: 700; letter-spacing: 2px; margin-right: 10px; }
+        .member-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .member-card { background: rgba(20, 20, 25, 0.6); backdrop-filter: blur(5px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px 15px; display: flex; align-items: center; gap: 15px; transition: all 0.3s ease; position: relative; }
+        .member-card:hover { background: rgba(30, 30, 40, 0.8); }
+        
+        .text-gold { color: #FFD700; } .card-gold { border-left: 3px solid #FFD700; }
+        .text-red { color: #FF4757; } .card-red { border-left: 3px solid #FF4757; }
+        .text-blue { color: #1E90FF; } .card-blue { border-left: 3px solid #1E90FF; }
+        .text-green { color: #2ED573; } .card-green { border-left: 3px solid #2ED573; }
+        
+        .avatar { position: relative; width: 55px; height: 55px; border-radius: 50%; background: rgba(255, 255, 255, 0.05); display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+        .avatar img { max-width: 35px; height: auto; opacity: 0.8; }
+        .status-dot { position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; background-color: #2ed573; border: 2px solid #141419; border-radius: 50%; }
+        .member-info { display: flex; flex-direction: column; justify-content: center; flex: 1; }
+        .member-role { font-family: 'Orbitron', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 1px; margin-bottom: 2px; }
+        .member-name { font-size: 1.1rem; font-weight: 600; color: #ffffff; margin-bottom: 2px; }
+        .fb-link { font-size: 0.8rem; color: #1E90FF; text-decoration: none; transition: color 0.3s; } .fb-link:hover { color: #ffffff; text-decoration: underline; }
+        
+        .admin-actions { display: flex; gap: 5px; flex-shrink: 0; }
+        .btn-miniaction { background: rgba(255,255,255,0.1); border: none; color: #fff; width: 30px; height: 30px; border-radius: 5px; cursor: pointer; transition: 0.2s; font-size: 1rem; }
+        .btn-miniaction.edit:hover { background: #FFD700; color: #000; }
+        .btn-miniaction.del:hover { background: #FF4757; }
+
+        @media (max-width: 768px) { .member-grid { grid-template-columns: 1fr; } .admin-form { grid-template-columns: 1fr; } }
+        
+        #particles-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
+        .particle { position: absolute; background-color: rgba(255, 255, 255, 0.6); border-radius: 50%; animation: snowfall linear infinite; }
+        @keyframes snowfall { 0% { transform: translateY(-10vh) translateX(0); opacity: 1; } 100% { transform: translateY(110vh) translateX(20px); opacity: 0; } }
+    </style>
+</head>
+<body>
+    <div class="background"></div>
+    <div class="background-overlay"></div>
+    <div id="particles-container"></div>
+
+    <div class="container" id="adminContainer">
+        <div class="top-nav">
+            <a href="index.html" class="btn-back">◀ BACK TO HOME</a>
+            <div>
+                <span style="font-family: 'Orbitron'; color: #ff4757; margin-right: 15px;">⚡ ADMIN MODE</span>
+                <button class="btn-logout" onclick="logoutAdmin()">LOGOUT</button>
+            </div>
+        </div>
+
+        <div class="header-center">
+            <h1 class="main-page-title">ADMIN CONTROL</h1>
+        </div>
+
+        <div class="admin-panel panel-design">
+            <h3 class="admin-title" style="color: #1E90FF;">⚙️ GLOBAL SETTINGS (ตั้งค่าข้อความ และ รูปภาพ)</h3>
+            
+            <div style="margin-bottom: 10px; color: #aaa; font-size: 0.9rem;">📝 ข้อความหน้าแรก (Index)</div>
+            <div class="admin-form">
+                <input type="text" id="setDocTitle" class="admin-input" placeholder="ชื่อแท็บเว็บ (เช่น HOUSE OF ELITE)">
+                <input type="text" id="setIndexMain" class="admin-input" placeholder="หัวข้อหลัก (เช่น HOUSE OF ELITE)">
+                <input type="text" id="setIndexSub" class="admin-input" placeholder="หัวข้อรอง (เช่น B O R N  O F  E L I T E)">
+                <input type="text" id="setFooterText" class="admin-input" placeholder="ข้อความด้านล่างสุด (ใช้ <strong>...</strong> เน้นคำได้)">
+            </div>
+
+            <div style="margin-bottom: 10px; margin-top: 15px; color: #aaa; font-size: 0.9rem;">📝 ข้อความหน้ารายชื่อ (Member)</div>
+            <div class="admin-form">
+                <input type="text" id="setMemberDoc" class="admin-input" placeholder="ชื่อแท็บเว็บ (เช่น MEMBER ELITE)">
+                <input type="text" id="setMemberMain" class="admin-input" placeholder="หัวข้อหลัก (เช่น ELITESTYLE)">
+            </div>
+
+            <div style="margin-bottom: 10px; margin-top: 15px; color: #aaa; font-size: 0.9rem;">🎨 รูปภาพ (ใส่ลิงก์ URL หรือชื่อไฟล์)</div>
+            <div class="admin-form" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                <input type="text" id="setBg" class="admin-input" placeholder="ลิ้งก์รูปพื้นหลัง (เช่น bg.jpg)">
+                <input type="text" id="setLogo" class="admin-input" placeholder="ลิ้งก์โลโก้ (เช่น ELITE.png)">
+                <input type="text" id="setIcon" class="admin-input" placeholder="ลิ้งก์ไอคอน (เช่น ELITE.icon)">
+            </div>
+
+            <button class="btn-action btn-add" style="background: #1E90FF; width: 100%; margin-top: 15px;" onclick="saveDesign()">✔ SAVE ALL SETTINGS</button>
+        </div>
+
+        <div class="admin-panel">
+            <h3 class="admin-title" id="formTitle">ADD NEW MEMBER</h3>
+            <div class="admin-form">
+                <input type="text" id="mName" class="admin-input" placeholder="ชื่อสมาชิก (Name)...">
+                <input type="text" id="mRole" class="admin-input" placeholder="ยศ (เช่น ♛ OWNER, ★ LEADER)...">
+                <select id="mCategory" class="admin-input">
+                    <option value="owner">OWNER & THE BOSS (สีทอง)</option>
+                    <option value="leader">LEADER (สีแดง)</option>
+                    <option value="support">SUPPORT (สีฟ้า)</option>
+                    <option value="member">MEMBER (สีเขียว)</option>
+                </select>
+                <input type="text" id="mFb" class="admin-input" placeholder="ลิ้งก์ Facebook...">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-action btn-add" id="btnSave" onclick="saveMember()" style="background: #ff4757;">✚ ADD MEMBER</button>
+                <button class="btn-action btn-cancel" id="btnCancel" onclick="resetForm()" style="display:none;">CANCEL</button>
+            </div>
+        </div>
+
+        <div class="category-section" id="cat-owner"><div class="category-header"><h2 class="category-title text-gold">OWNERS</h2></div><div class="member-grid"></div></div>
+        <div class="category-section" id="cat-leader"><div class="category-header"><h2 class="category-title text-red">LEADERS</h2></div><div class="member-grid"></div></div>
+        <div class="category-section" id="cat-support"><div class="category-header"><h2 class="category-title text-blue">SUPPORTS</h2></div><div class="member-grid"></div></div>
+        <div class="category-section" id="cat-member"><div class="category-header"><h2 class="category-title text-green">MEMBERS</h2></div><div class="member-grid"></div></div>
+    </div>
+
+    <script>
+        // ⚠️ ใส่ Firebase Config ตรงนี้
+        const firebaseConfig = {
+            apiKey: "AIzaSyACXGoNXUMf8jciZNZpPUTavu24SPYKmEE",
+            authDomain: "qaqenv1vml-59205.firebaseapp.com",
+            projectId: "qaqenv1vml-59205",
+            storageBucket: "qaqenv1vml-59205.firebasestorage.app",
+            messagingSenderId: "20480642329",
+            appId: "1:20480642329:web:b90eec4807607470ef4988",
+        };
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // Security Check
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                document.getElementById('adminContainer').style.display = 'block';
+                loadAdminData();
+            } else {
+                window.location.href = "member.html";
+            }
+        });
+
+        function logoutAdmin() {
+            auth.signOut().then(() => {
+                window.location.href = "member.html";
+            });
+        }
+
+        function loadAdminData() {
+            db.collection("site").doc("design").onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    
+                    document.getElementById('setDocTitle').value = data.docTitle || '';
+                    document.getElementById('setIndexMain').value = data.indexMainTitle || '';
+                    document.getElementById('setIndexSub').value = data.indexSubTitle || '';
+                    document.getElementById('setFooterText').value = data.footerText || '';
+                    
+                    document.getElementById('setMemberDoc').value = data.memberDocTitle || '';
+                    document.getElementById('setMemberMain').value = data.memberMainTitle || '';
+                    
+                    document.getElementById('setBg').value = data.bgUrl || '';
+                    document.getElementById('setLogo').value = data.logoUrl || '';
+                    document.getElementById('setIcon').value = data.iconUrl || '';
+                    
+                    if (data.bgUrl) document.querySelector('.background').style.backgroundImage = `url('${data.bgUrl}')`;
+                    if (data.iconUrl) {
+                        let link = document.querySelector("link[rel~='icon']");
+                        if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+                        link.href = data.iconUrl;
+                    }
+                    if (data.logoUrl) {
+                        document.querySelectorAll('.avatar img').forEach(img => img.src = data.logoUrl);
+                    }
+                }
+            });
+
+            db.collection("members").orderBy("createdAt", "asc").onSnapshot((snapshot) => {
+                document.querySelector('#cat-owner .member-grid').innerHTML = '';
+                document.querySelector('#cat-leader .member-grid').innerHTML = '';
+                document.querySelector('#cat-support .member-grid').innerHTML = '';
+                document.querySelector('#cat-member .member-grid').innerHTML = '';
+                snapshot.forEach((doc) => renderCard(doc.id, doc.data()));
+            });
+        }
+
+        function saveDesign() {
+            db.collection("site").doc("design").set({
+                docTitle: document.getElementById('setDocTitle').value,
+                indexMainTitle: document.getElementById('setIndexMain').value,
+                indexSubTitle: document.getElementById('setIndexSub').value,
+                footerText: document.getElementById('setFooterText').value,
+                memberDocTitle: document.getElementById('setMemberDoc').value,
+                memberMainTitle: document.getElementById('setMemberMain').value,
+                bgUrl: document.getElementById('setBg').value,
+                logoUrl: document.getElementById('setLogo').value,
+                iconUrl: document.getElementById('setIcon').value
+            }, { merge: true }).then(() => alert("อัปเดตการตั้งค่าเว็บไซต์ (ข้อความและรูปภาพ) เรียบร้อย!"));
+        }
+
+        let editingId = null;
+
+        function renderCard(id, data) {
+            let colorClass, titleClass, gridId;
+            if(data.category === 'owner') { gridId = '#cat-owner .member-grid'; colorClass = 'card-gold'; titleClass = 'text-gold'; }
+            else if(data.category === 'leader') { gridId = '#cat-leader .member-grid'; colorClass = 'card-red'; titleClass = 'text-red'; }
+            else if(data.category === 'support') { gridId = '#cat-support .member-grid'; colorClass = 'card-blue'; titleClass = 'text-blue'; }
+            else { gridId = '#cat-member .member-grid'; colorClass = 'card-green'; titleClass = 'text-green'; }
+
+            const logoUrl = document.getElementById('setLogo').value || 'ELITE.png';
+
+            const cardHTML = `
+                <div class="member-card ${colorClass}" id="${id}">
+                    <div class="avatar"><img src="${logoUrl}" alt="logo"><div class="status-dot"></div></div>
+                    <div class="member-info">
+                        <span class="member-role ${titleClass}">${data.role}</span>
+                        <span class="member-name">${data.name}</span>
+                        <a href="${data.fb}" target="_blank" class="fb-link">Facebook</a>
+                    </div>
+                    <div class="admin-actions">
+                        <button class="btn-miniaction edit" onclick="prepareEdit('${id}', '${data.name}', '${data.role}', '${data.category}', '${data.fb}')">✎</button>
+                        <button class="btn-miniaction del" onclick="deleteMember('${id}')">✗</button>
+                    </div>
+                </div>`;
+            document.querySelector(gridId).insertAdjacentHTML('beforeend', cardHTML);
+        }
+
+        function saveMember() {
+            const name = document.getElementById('mName').value;
+            const role = document.getElementById('mRole').value;
+            const category = document.getElementById('mCategory').value;
+            const fb = document.getElementById('mFb').value;
+            if(!name || !role) return alert('กรุณากรอกชื่อและยศให้ครบถ้วน!');
+
+            const memberData = { name, role, category, fb: fb || '#', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+            if(editingId) {
+                db.collection("members").doc(editingId).update(memberData).then(() => resetForm());
+            } else {
+                db.collection("members").add(memberData).then(() => resetForm());
+            }
+        }
+
+        function deleteMember(id) { if(confirm('คุณแน่ใจหรือไม่ที่จะลบสมาชิกท่านนี้?')) db.collection("members").doc(id).delete(); }
+
+        function prepareEdit(id, name, role, category, fb) {
+            editingId = id;
+            document.getElementById('mName').value = name;
+            document.getElementById('mRole').value = role;
+            document.getElementById('mCategory').value = category;
+            document.getElementById('mFb').value = fb !== '#' ? fb : '';
+            document.getElementById('formTitle').innerText = 'EDIT MEMBER';
+            document.getElementById('btnSave').innerText = '✔ UPDATE MEMBER';
+            document.getElementById('btnSave').style.background = '#FFD700';
+            document.getElementById('btnSave').style.color = '#000';
+            document.getElementById('btnCancel').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetForm() {
+            editingId = null;
+            document.getElementById('mName').value = '';
+            document.getElementById('mRole').value = '';
+            document.getElementById('mCategory').value = 'member';
+            document.getElementById('mFb').value = '';
+            document.getElementById('formTitle').innerText = 'ADD NEW MEMBER';
+            document.getElementById('btnSave').innerText = '✚ ADD MEMBER';
+            document.getElementById('btnSave').style.background = '#ff4757';
+            document.getElementById('btnSave').style.color = '#fff';
+            document.getElementById('btnCancel').style.display = 'none';
+        }
+
+        window.onload = function() {
+            const container = document.getElementById('particles-container');
+            for (let i = 0; i < 40; i++) {
+                let p = document.createElement('div'); p.classList.add('particle');
+                p.style.width = p.style.height = (Math.random() * 3 + 1) + 'px';
+                p.style.left = Math.random() * 100 + 'vw';
+                p.style.animationDuration = (Math.random() * 8 + 5) + 's';
+                p.style.animationDelay = (Math.random() * 5) + 's';
+                container.appendChild(p);
+            }
+        };
+    </script>
+</body>
+</html>
